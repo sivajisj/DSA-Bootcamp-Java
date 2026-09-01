@@ -1,36 +1,46 @@
-### Key Rust Takeaways
+# Rust Technical Interview Reference & Key Takeaways
 
-* **String Ownership:** Returning owned data created dynamically inside a function (like `"something".to_string()`) requires changing the return type to `String`. Alternatively, return string literals with `'static` references (`&'static str`).
-* **What `usize` is:** `usize` is an unsigned integer type whose size dynamically matches your computer's architecture (32-bit or 64-bit).
-* **Why `usize` is required:** Rust strictly enforces using `usize` for all array and vector indexing because memory addresses and array lengths depend on pointer size.
-* **How to fix indexing errors:** Convert integer types like `i32` to `usize` using the `as` keyword (e.g., `nums[idx as usize]`).
+A personal reference guide for writing idiomatic, high-performance, and memory-efficient Rust solutions for technical coding interviews (LeetCode/DSA).
 
-Primitive Types & Type Casting (i32 vs. usize)
+---
 
-Why: You hit repeated compiler errors because Rust does not implicitly convert integers. Array indexing strictly requires usize, while algorithm math often works in i32.
+## 🛠️ Fundamental Syntax & Types
 
-Focus: How as usize works and type requirements for slice operations.
+### Primitive Types & Type Casting (`i32` vs. `usize`)
+* **Why:** Rust does not implicitly convert numbers. Array/vector indexing strictly requires `usize`, while DSA math often operates on `i32`.
+* **Takeaway:** Always cast integer indices using the `as` keyword when accessing arrays (e.g., `nums[idx as usize]`).
 
-Iterators & Range Syntax (0..nums.len() vs. 0..n)
+### Iterators & Range Syntax (`0..nums.len()` vs. `0..n`)
+* **Why:** Writing `0..n` (where `n: i32`) produces `i32` loop variables, triggering compilation errors when indexing slices.
+* **Takeaway:** Prefer `0..nums.len()` because `.len()` naturally returns `usize`, keeping loop variables typed correctly for indexing without explicit casts.
 
-Why: The expression 0..n (where n is i32) produces i32 loop variables, breaking array access. Using 0..nums.len() naturally infers usize.
+### Ownership & Parameter Mutability (`mut nums: Vec<i32>`)
+* **Why:** Function parameters in Rust are immutable bindings by default. In-place algorithms require explicit mutation privileges.
+* **Takeaway:** Re-bind input arguments with `mut` in the function signature (e.g., `pub fn build_array(mut nums: Vec<i32>)`) to perform $O(1)$ auxiliary space modifications.
 
-Focus: Type inference in Ranges and using .len() directly in loops.
+### Statements vs. Expressions (Semicolons `;`)
+* **Why:** Omitting a semicolon turns a statement into a return expression.
+* **Takeaway:** Use `;` to terminate side-effect statements (like `nums[i] /= n;`). Omit the semicolon on the final line of a block or function to return that value implicitly.
 
-Ownership and Parameter Mutability (mut nums: Vec<i32>)
+---
 
-Why: In-place algorithms require modifying input arguments. By default, function arguments in Rust are immutable bindings.
+## 🚀 Memory Optimization & Data Structures
 
-Focus: Re-binding function parameters with mut and understanding when values are moved vs. borrowed.
+### Returning Arrays (`[T; N]`) vs. Vectors (`Vec<T>`)
+* **Fixed-size Arrays (`[T; N]`):** Stack-allocated, fixed size known at compile time. Ideal for small, constant returns (e.g., coordinates, RGB values).
+* **Vectors (`Vec<T>`):** Heap-allocated, dynamic size determined at runtime. Default choice for variable-length collection requirements.
 
-Rust Statements vs. Expressions (Semicolons ;)
+### Single-Lookup Entry API (`HashMap::entry`)
+* **Why:** Combining `contains_key()` with `.get()` or `.insert()` calculates the key's hash twice.
+* **Takeaway:** Use `match map.entry(key)` to compute the hash location **exactly once**.
+  ```rust
+  use std::collections::hash_map::Entry;
 
-Why: You hit a syntax error on nums[i] /= n due to a missing semicolon inside the loop body.
-
-Focus: The difference between returning an expression value and terminating a statement with ;.
-
-Idiomatic Iteration (Functional Style - Optional)
-
-Why: Once comfortable with indexed for loops, Rust developers often write in-place updates using mutable iterators to avoid index operations entirely.
-
-Focus: for val in nums.iter_mut() and method chaining.
+  match map.entry(key) {
+      Entry::Occupied(entry) => {
+          let val = entry.get(); // Access existing value
+      }
+      Entry::Vacant(entry) => {
+          entry.insert(default_val); // Insert missing value
+      }
+  }
