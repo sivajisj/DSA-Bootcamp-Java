@@ -48,28 +48,35 @@ A personal reference guide for writing idiomatic, high-performance, and memory-e
 
 
 ```markdown
-# Rust DSA Cheat Sheet & Code Templates
+# Rust DSA Interview Cheat Sheet & Templates
 
-Quick-reference code snippets and standard templates for common interview algorithmic patterns in Rust.
+Idiomatic, copy-pasteable Rust code templates for technical interview patterns, complete with line-by-line annotations explaining indexing safety, compiler constraints, and performance traits.
 
 ---
 
 ## 1. Matrix Transformations
 
-### In-Place Symmetric Swap + Invert ($O(1)$ Space)
-Used for reversing rows in-place and flipping bits simultaneously.
+### In-Place Symmetric Swap + Invert ($O(1)$ Auxiliary Space)
+Reverses each matrix row and flips bits ($0 \leftrightarrow 1$) in a single pass without extra memory allocation.
+
 ```rust
 pub fn flip_and_invert_image_inplace(mut image: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
     let n = image.len();
+
     for i in 0..n {
-        // Bound loop to middle to prevent double-swapping
+        // Stop at (n + 1) / 2 to reach the middle element.
+        // Going beyond (n / 2) would re-swap elements back to original positions.
         for j in 0..(n + 1) / 2 {
-            let k = n - 1 - j; // Opposite index
+            let k = n - 1 - j; // Calculate the opposite (symmetric) index in the row.
+
+            // Flip both values using bitwise XOR (^ 1) and swap simultaneously.
+            // Works for middle elements where j == k, as (x ^ 1) correctly flips the bit.
             let temp = image[i][j] ^ 1;
             image[i][j] = image[i][k] ^ 1;
             image[i][k] = temp;
         }
     }
+
     image
 }
 
@@ -77,19 +84,19 @@ pub fn flip_and_invert_image_inplace(mut image: Vec<Vec<i32>>) -> Vec<Vec<i32>> 
 
 ### Functional Chain Transformation ($O(N^2)$ Space)
 
-Idiomatic, functional row reflection and bit flip using iterators.
+Clean, idiomatic Rust functional style using iterator combinators. Preferred when immutability is favored.
 
 ```rust
 pub fn flip_and_invert_image_functional(image: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
     image
-        .into_iter()
+        .into_iter() // Consume matrix outer vector into an iterator of rows
         .map(|row| {
             row.into_iter()
-                .rev()          // Reverse horizontal row
-                .map(|b| b ^ 1) // Invert bit (0 -> 1, 1 -> 0)
-                .collect()
+                .rev()          // 1. Reverse inner row elements horizontally
+                .map(|b| b ^ 1) // 2. Invert bits (0 -> 1, 1 -> 0) in single instruction
+                .collect()      // Re-collect inverted elements into Vec<i32>
         })
-        .collect()
+        .collect() // Re-collect rows into Vec<Vec<i32>>
 }
 
 ```
@@ -98,17 +105,20 @@ pub fn flip_and_invert_image_functional(image: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
 
 ## 2. Dynamic Sliding & One-Pass Tracking
 
-### Running Minimum / Maximum (Best Time to Buy & Sell Stock)
+### Running Minimum / Maximum Tracking ($O(N)$ Time, $O(1)$ Space)
 
-Single-pass $O(N)$ tracking without explicit window state.
+Tracks state in a single linear pass to avoid $O(N^2)$ nested comparison loops.
 
 ```rust
 pub fn max_profit(prices: Vec<i32>) -> i32 {
-    let mut min_price = i32::MAX;
-    let mut max_profit = 0;
+    let mut min_price = i32::MAX; // Initialize to max boundary to handle first comparison
+    let mut max_profit = 0;        // Minimum possible profit is 0 (no transaction)
 
     for price in prices {
+        // Update running minimum purchase price seen so far
         min_price = min_price.min(price);
+
+        // Update maximum profit achievable by selling at current price
         max_profit = max_profit.max(price - min_price);
     }
 
@@ -123,28 +133,30 @@ pub fn max_profit(prices: Vec<i32>) -> i32 {
 
 ### Find the Duplicate Number ($O(N)$ Time, $O(1)$ Space)
 
-Treating array values as graph pointers (`nums[x as usize]`).
+Uses array values as pointer offsets (`nums[i] as usize`) to detect graph cycles without modifying the array.
 
 ```rust
 pub fn find_duplicate(nums: Vec<i32>) -> i32 {
-    // Phase 1: Initialize slow (1 jump) and fast (2 jumps)
+    // Cast index to usize because Rust slice indexing strictly requires usize.
+    // Initialize slow (1 jump) and fast (2 jumps) pointers from origin index 0.
     let mut slow = nums[0];
     let mut fast = nums[nums[0] as usize];
 
-    // Phase 1 Loop: Advance until pointers collide in the loop
+    // Phase 1: Run until slow and fast pointers collide inside the cycle.
     while slow != fast {
-        slow = nums[slow as usize];
-        fast = nums[nums[fast as usize] as usize];
+        slow = nums[slow as usize];                           // 1 step forward
+        fast = nums[nums[fast as usize] as usize];            // 2 steps forward
     }
 
-    // Phase 2: Reset slow to origin; step both by 1 jump to find intersection
+    // Phase 2: Reset slow to origin index 0; advance both pointers by 1 step.
+    // The point where they meet again is the entrance to the cycle (the duplicate).
     slow = 0;
     while slow != fast {
-        slow = nums[slow as usize];
-        fast = nums[fast as usize];
+        slow = nums[slow as usize]; // 1 step forward
+        fast = nums[fast as usize]; // 1 step forward
     }
 
-    slow // Intersection point is the duplicate value
+    slow // Cycle entrance value is the duplicate element
 }
 
 ```
@@ -153,18 +165,23 @@ pub fn find_duplicate(nums: Vec<i32>) -> i32 {
 
 ## 4. Single-Lookup HashMap Pattern
 
-### Frequency Counting with `Entry` API
+### Frequency Counting with the `Entry` API
 
-Prevents double hashing overhead during insertion and updates.
+Eliminates duplicate hash computations by computing key bucket locations exactly once per element.
 
 ```rust
 use std::collections::HashMap;
 
 pub fn count_frequencies(nums: Vec<i32>) -> HashMap<i32, usize> {
     let mut counts = HashMap::new();
+
     for num in nums {
+        // .entry() locates the key once.
+        // .or_insert(0) initializes missing keys to 0.
+        // Dereference (*) operator modifies the stored counter directly in-place.
         *counts.entry(num).or_insert(0) += 1;
     }
+
     counts
 }
 
@@ -172,15 +189,15 @@ pub fn count_frequencies(nums: Vec<i32>) -> HashMap<i32, usize> {
 
 ---
 
-## 5. Standard Playground Runner Template
+## 5. Local Rust Playground Harness
 
-Boilerplate structure to test LeetCode solution functions locally in Rust Playground.
+Boilerplate wrapper to compile and test LeetCode solution logic locally in standard Rust execution environments.
 
 ```rust
 struct Solution;
 
 impl Solution {
-    // Paste solution method here
+    // Paste solution functions inside this implementation block
 }
 
 fn main() {
@@ -191,8 +208,8 @@ fn main() {
     ];
 
     let result = Solution::flip_and_invert_image_functional(input);
-    
-    println!("Output:");
+
+    println!("Transformed Matrix Output:");
     for row in result {
         println!("{:?}", row);
     }
@@ -200,6 +217,5 @@ fn main() {
 
 ```
 
-```
 
-```
+
