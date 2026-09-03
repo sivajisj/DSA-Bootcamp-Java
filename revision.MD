@@ -6,7 +6,7 @@ A personal reference guide for writing idiomatic, high-performance, and memory-e
 
 ## 🛠️ Fundamental Syntax & Types
 
-### Primitive Types & Type Casting (`i32` vs. `usize`)
+### Primitive Types & Type Casting (`i32` vs. `usize`)z
 * **Why:** Rust does not implicitly convert numbers. Array/vector indexing strictly requires `usize`, while DSA math often operates on `i32`.
 * **Takeaway:** Always cast integer indices using the `as` keyword when accessing arrays (e.g., `nums[idx as usize]`).
 
@@ -44,3 +44,162 @@ A personal reference guide for writing idiomatic, high-performance, and memory-e
           entry.insert(default_val); // Insert missing value
       }
   }
+
+
+
+```markdown
+# Rust DSA Cheat Sheet & Code Templates
+
+Quick-reference code snippets and standard templates for common interview algorithmic patterns in Rust.
+
+---
+
+## 1. Matrix Transformations
+
+### In-Place Symmetric Swap + Invert ($O(1)$ Space)
+Used for reversing rows in-place and flipping bits simultaneously.
+```rust
+pub fn flip_and_invert_image_inplace(mut image: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
+    let n = image.len();
+    for i in 0..n {
+        // Bound loop to middle to prevent double-swapping
+        for j in 0..(n + 1) / 2 {
+            let k = n - 1 - j; // Opposite index
+            let temp = image[i][j] ^ 1;
+            image[i][j] = image[i][k] ^ 1;
+            image[i][k] = temp;
+        }
+    }
+    image
+}
+
+```
+
+### Functional Chain Transformation ($O(N^2)$ Space)
+
+Idiomatic, functional row reflection and bit flip using iterators.
+
+```rust
+pub fn flip_and_invert_image_functional(image: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
+    image
+        .into_iter()
+        .map(|row| {
+            row.into_iter()
+                .rev()          // Reverse horizontal row
+                .map(|b| b ^ 1) // Invert bit (0 -> 1, 1 -> 0)
+                .collect()
+        })
+        .collect()
+}
+
+```
+
+---
+
+## 2. Dynamic Sliding & One-Pass Tracking
+
+### Running Minimum / Maximum (Best Time to Buy & Sell Stock)
+
+Single-pass $O(N)$ tracking without explicit window state.
+
+```rust
+pub fn max_profit(prices: Vec<i32>) -> i32 {
+    let mut min_price = i32::MAX;
+    let mut max_profit = 0;
+
+    for price in prices {
+        min_price = min_price.min(price);
+        max_profit = max_profit.max(price - min_price);
+    }
+
+    max_profit
+}
+
+```
+
+---
+
+## 3. Floyd’s Cycle Detection (Pointer Jumping)
+
+### Find the Duplicate Number ($O(N)$ Time, $O(1)$ Space)
+
+Treating array values as graph pointers (`nums[x as usize]`).
+
+```rust
+pub fn find_duplicate(nums: Vec<i32>) -> i32 {
+    // Phase 1: Initialize slow (1 jump) and fast (2 jumps)
+    let mut slow = nums[0];
+    let mut fast = nums[nums[0] as usize];
+
+    // Phase 1 Loop: Advance until pointers collide in the loop
+    while slow != fast {
+        slow = nums[slow as usize];
+        fast = nums[nums[fast as usize] as usize];
+    }
+
+    // Phase 2: Reset slow to origin; step both by 1 jump to find intersection
+    slow = 0;
+    while slow != fast {
+        slow = nums[slow as usize];
+        fast = nums[fast as usize];
+    }
+
+    slow // Intersection point is the duplicate value
+}
+
+```
+
+---
+
+## 4. Single-Lookup HashMap Pattern
+
+### Frequency Counting with `Entry` API
+
+Prevents double hashing overhead during insertion and updates.
+
+```rust
+use std::collections::HashMap;
+
+pub fn count_frequencies(nums: Vec<i32>) -> HashMap<i32, usize> {
+    let mut counts = HashMap::new();
+    for num in nums {
+        *counts.entry(num).or_insert(0) += 1;
+    }
+    counts
+}
+
+```
+
+---
+
+## 5. Standard Playground Runner Template
+
+Boilerplate structure to test LeetCode solution functions locally in Rust Playground.
+
+```rust
+struct Solution;
+
+impl Solution {
+    // Paste solution method here
+}
+
+fn main() {
+    let input = vec![
+        vec![1, 1, 0],
+        vec![1, 0, 1],
+        vec![0, 0, 0],
+    ];
+
+    let result = Solution::flip_and_invert_image_functional(input);
+    
+    println!("Output:");
+    for row in result {
+        println!("{:?}", row);
+    }
+}
+
+```
+
+```
+
+```
