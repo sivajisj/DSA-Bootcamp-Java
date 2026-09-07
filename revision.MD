@@ -216,6 +216,97 @@ fn main() {
 }
 
 ```
+Here is the summary of today's learning, dated **September 7, 2026**, formatted and annotated to match the clean, readable style of your revision guide. You can copy and paste this directly into your main `.md` file.
+
+```markdown
+## 📅 Revision Entry: September 7, 2026
+
+---
+
+### 1. 🛠️ Rust String Formatting & Compiler Constraints
+
+#### Avoid In-Line Indexing in Format Strings (`format!`)
+* **Why:** Rust's string interpolation only supports simple variable names inside braces `{name}`. Complex expressions like `names[0]` trigger compiler errors (`expected '}', found '['`).
+* **Takeaway:** Pass array or slice indices as explicit positional arguments after the format string.
+  ```rust
+  // ❌ WRONG: Compiler error
+  format!("{names[0]} likes this");
+
+  // ✅ CORRECT:
+  format!("{} likes this", names[0]);
+
+```
+
+#### Display `{}` vs. Debug `{:?}` Specifiers
+
+* **Why:** Using `{:?}` on string types wraps output in literal escape quotes (`"\"Peter\" likes this"`), causing test assertion failures.
+* **Takeaway:** Always use `{}` (Display trait) for clean user-facing text and `{:?}` (Debug trait) strictly for inspecting data structures.
+
+#### Return Types in `if` Blocks Without `else`
+
+* **Why:** An `if` statement without an `else` branch must evaluate to `()` (unit type). Returning a value like `format!(...)` inside it results in a type mismatch error (`expected (), found String`).
+* **Takeaway:** Either add an explicit `return` keyword for guard clauses or provide a matching `else` block to return expressions implicitly.
+```rust
+// Explicit return guard clause:
+if n <= 0 {
+    return format!("no one likes this");
+}
+
+```
+
+
+
+---
+
+### 2. ⚡ Array & String Manipulation Patterns
+
+#### Converting Strings & Characters to Numbers
+
+* **`&str` to Number:** Use `.parse::<T>()`, which returns a `Result<T, ParseIntError>` for runtime string validation.
+* **`char` to Number:** Use `.to_digit(radix)` (e.g., `.to_digit(10)` for base-10), which returns an `Option<u32>`.
+
+#### Array Slices (`&[T]`) as Function Parameters
+
+* **Why:** Functions taking `&Vec<T>` or fixed-size array references `&[T; N]` restrict caller flexibility.
+* **Takeaway:** Accept slice references `&[T]` in function parameters to support vectors, fixed arrays, and partial array slices seamlessly via deref coercion.
+
+#### Formatting Slices vs. Formatting Individual Elements
+
+* **Why:** Passing a slice range like `&numbers[0..3]` into `format!("({})", ...)` prints the debug array representation `"[1, 2, 3]"` instead of raw digits.
+* **Takeaway:** Either index elements individually (`numbers[0]`) or collect elements into a intermediate `String` before taking string slice ranges (`&s[0..3]`).
+
+---
+
+### 3. 🧩 Search & Sorting Patterns
+
+#### Finding Indices in Non-Integer Slices (`.position()` & `.rposition()`)
+
+* **Why:** Searching non-integer collections (like `&[&str]` or `Vec<String>`) requires matching references using closures.
+* **Takeaway:** Use `.iter().position(|&x| x == "target")` for forward $O(N)$ searches, or `.iter().rposition(...)` / `.iter().rev().position(...)` to search backward from the end. Returns `Option<usize>`.
+```rust
+let wolf_pos = queue.iter().position(|&r| r == "wolf").unwrap();
+
+```
+
+
+
+#### Wave Sorting ($O(N \log N)$)
+
+* **Pattern:** Rearranges an array into an alternating pattern ($a_1 \ge a_2 \le a_3 \ge a_4$).
+* **Strategy:** Sort ascending using `.sort_unstable()`, then iterate in steps of 2 using `.step_by(2)` and swap adjacent pairs in-place using `.swap(i, i + 1)`.
+* **Underflow Prevention:** Use `.saturating_sub(1)` when computing bounds like `arr.len().saturating_sub(1)` to prevent `usize` underflow panics on empty slices (`[]`).
+```rust
+pub fn wave_sort(arr: &mut [i32]) {
+    arr.sort_unstable();
+    for i in (0..arr.len().saturating_sub(1)).step_by(2) {
+        arr.swap(i, i + 1);
+    }
+}
+
+```
+
+
+
 
 
 
