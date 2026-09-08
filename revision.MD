@@ -306,6 +306,91 @@ pub fn wave_sort(arr: &mut [i32]) {
 ```
 
 
+```markdown
+## 📅 Revision Entry: September 8, 2026
+
+---
+
+### 1. 🛠️ Compiler Constraints & Move Semantics
+
+#### Trait Constraints in Closures (`E0507: cannot move out of a shared reference`)
+* **Why:** Pattern matching with `|&x|` in closures (like `vec.retain(...)`) tries to copy the value out of the reference. If type `T` does not implement `Copy` (e.g., `String`, `Vec`, or generic `T`), Rust blocks the move to prevent invalidating shared memory.
+* **Takeaway:** Receive the item as a reference `|x|` and compare against references or dereference for comparison.
+  ```rust
+  // ❌ WRONG: Fails for non-Copy types (E0507)
+  a.retain(|&x| x != b[i]);
+
+  // ✅ CORRECT: Works for all types implementing PartialEq
+  a.retain(|x| x != &b[i]);
+  
+  // ✅ IDIOMATIC (Array Difference):
+  a.retain(|item| !b.contains(item));
+
+```
+
+#### Exponentiation Syntax
+
+* **Why:** Rust does not support the `**` operator for exponents. Using `x ** x` causes a compilation error.
+* **Takeaway:** Use basic multiplication (`x * x`) for squaring or `.pow(n)` for general integer exponentiation.
+
+---
+
+### 2. ⚡ Numeric & Square Root Patterns
+
+#### Integer Square Root Compatibility (`.isqrt()` vs `.sqrt()`)
+
+* **Method Availability:** `.isqrt()` is available in Rust **1.84+** on primitive integer types (`u32`, `i32`, `usize`).
+* **Legacy / Online Judge Fallback:** Online competitive coding platforms on older toolchains will fail with `E0599` on `.isqrt()`. Use floating-point conversion as a cross-platform fallback:
+```rust
+// Rust 1.84+ only:
+let root = x.isqrt();
+
+// Legacy platform fallback (Codewars, LeetCode):
+let root = (x as f64).sqrt() as u32;
+
+// Perfect Square Check:
+let is_perfect = root * root == x;
+
+```
+
+
+
+---
+
+### 3. 🧩 In-Place Mutation vs. Iterator Ownership
+
+#### Selection Guide for Iterating Arrays/Slices
+
+| Iterator / Approach | Borrow Type | Ownership | Can Mutate In-Place? | Primary Use Case |
+| --- | --- | --- | --- | --- |
+| `for i in 0..arr.len()` | Direct Indexing | N/A | **Yes** (`arr[i] = ...`) | Index-dependent logic & swapping (`arr.swap(i, j)`) |
+| `.iter_mut()` | `&mut T` | Borrows mutably | **Yes** (`*item = ...`) | Sequential in-place value transformation |
+| `.into_iter()` | `T` | **Consumes / Moves** | ❌ No | Transforming/consuming collection ownership |
+
+---
+
+### 📝 Practical Reference Code: Square or Square Root
+
+```rust
+// Modifies or maps numbers based on whether they are perfect squares
+fn square_or_square_root(arr: &[u32]) -> Vec<u32> {
+    arr.iter()
+        .map(|&x| {
+            let root = (x as f64).sqrt() as u32;
+            if root * root == x {
+                root
+            } else {
+                x * x
+            }
+        })
+        .collect()
+}
+
+```
+
+
+
+
 
 
 
