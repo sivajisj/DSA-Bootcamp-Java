@@ -598,6 +598,129 @@ mod tests {
 
 ```
 
-```
+Here is the clean, consolidated Markdown content covering all the key Rust concepts, interview patterns, and compiler error fixes we worked through today. You can append this directly to your **`revision.md`** file.
+
+---
+
+```markdown
+## Daily Technical Revision
+
+### 1. Two Sum Pattern ($O(N)$ Time, $O(N)$ Space)
+* **Single-Pass HashMap:** Use `HashMap::with_capacity(nums.len())` to pre-allocate memory and eliminate reallocation overhead during iteration.
+* **Return Signatures & Divergence:** If a function guarantees a solution exists but signature dictates returning non-`Option` (e.g., `(usize, usize)`), use `panic!("...")` or `unreachable!()` for non-matching fallbacks.
+
+```rust
+use std::collections::HashMap;
+
+pub fn two_sum(numbers: &[i32], target: i32) -> (usize, usize) {
+    let mut map: HashMap<i32, usize> = HashMap::with_capacity(numbers.len());
+
+    for (index, &num) in numbers.iter().enumerate() {
+        let complement = target - num;
+
+        if let Some(&complement_index) = map.get(&complement) {
+            return (complement_index, index);
+        }
+
+        map.insert(num, index);
+    }
+
+    panic!("No two sum solution found");
+}
 
 ```
+
+---
+
+### 2. Array & Vector Operations
+
+#### A. Array to `Vec` Conversions
+
+| Method | Usage | Ownership Behavior |
+| --- | --- | --- |
+| `arr.to_vec()` | Preferred for slices/arrays | Clones/copies data into new `Vec` |
+| `Vec::from(arr)` | Trait implementation | Consumes array or copies primitives |
+| `arr.into()` | Type inference conversion | Consumes array into `Vec` |
+
+> ⚠️ **Warning:** Avoid using `vec![arr]`. It creates a `Vec<[T; N]>` (vector of fixed arrays) rather than a flat `Vec<T>`.
+
+#### B. Finding Minimum Elements
+
+* **Value Only:** `slice.iter().min()` returns `Option<&T>`. Match using `if let Some(&val)` to unwrap safely.
+* **Index + Value:** `slice.iter().enumerate().min_by_key(|&(_, &v)| v)` returns `Option<(usize, &T)>`.
+* **Float Handling:** `f32`/`f64` do not implement `Ord` due to `NaN`. Use `.min_by(|a, b| a.partial_cmp(b).unwrap())`.
+
+#### C. Finding Element Indices (`.position()`)
+
+* Use `slice.iter().position(|&x| x == target)` to find the index of the **first occurrence** ($O(N)$ time).
+* For **sorted arrays**, use `.partition_point(|&x| x < target)` to get the starting index of a target in $O(\log N)$ time.
+
+---
+
+### 3. Vector Element Removal Patterns
+
+| Method | Time Complexity | Order Preserved? | Behavior / Notes |
+| --- | --- | --- | --- |
+| `vec.remove(i)` | $O(N)$ | **Yes** | Shifts all subsequent elements left. Panics if `i >= len`. |
+| `vec.swap_remove(i)` | $O(1)$ | ❌ No | Replaces target with last element. Panics if `i >= len`. |
+| `vec.retain(f)` | $O(N)$ | **Yes** | Keeps elements where predicate evaluates to `true`. |
+
+#### Common Implementation Patterns
+
+```rust
+// 1. Remove ALL occurrences of value
+vec.retain(|&x| x != target);
+
+// 2. Remove FIRST occurrence by value (Order Preserved)
+if let Some(idx) = vec.iter().position(|&x| x == target) {
+    vec.remove(idx);
+}
+
+// 3. Remove FIRST occurrence by value (Fast, Unordered)
+if let Some(idx) = vec.iter().position(|&x| x == target) {
+    vec.swap_remove(idx);
+}
+
+```
+
+---
+
+### 4. Common Compiler Fixes & Gotchas
+
+#### A. Type Mismatch: `u32` vs `Option<&u32>`
+
+* **Problem:** Comparing an iterator reference `&x` directly with `.min()` result (`Option<&u32>`).
+* **Fix:** Pattern match or unwrap the option before comparing values.
+```rust
+if let Some(&min_num) = vec.iter().min() {
+    if let Some(index) = vec.iter().position(|&x| x == min_num) { ... }
+}
+
+```
+
+
+
+#### B. `Vec::remove()` Return Type & Mutability
+
+* **Mutability:** `.remove()` mutates the vector in-place. The vector variable must be declared `let mut vec = ...`.
+* **Return Value:** `vec.remove(index)` returns the removed **element `T` directly**, not an `Option` or `Result`.
+* **No `?` or `.unwrap()`:** Do not apply `?` or `.unwrap()` to `vec.remove()` or the returned vector itself.
+
+#### C. Pattern: Remove Smallest Element from Slice
+
+```rust
+fn remove_smallest(numbers: &[u32]) -> Vec<u32> {
+    let mut vec1 = numbers.to_vec();
+
+    if let Some(&min_num) = vec1.iter().min() {
+        if let Some(index) = vec1.iter().position(|&x| x == min_num) {
+            vec1.remove(index);
+        }
+    }
+
+    vec1
+}
+
+```
+
+
